@@ -11,9 +11,9 @@ export default function Toast({ message, type = 'success', onClose }) {
     return () => clearTimeout(timer)
   }, [onClose])
 
-  const accentColor = type === 'success' ? '#00875a' : '#dc2626'
-  const iconBg = type === 'success' ? '#dcfce7' : '#fee2e2'
-  const iconColor = type === 'success' ? '#00875a' : '#dc2626'
+  const accentColor = type === 'success' ? '#00875a' : type === 'info' ? '#0066cc' : '#dc2626'
+  const iconBg = type === 'success' ? '#dcfce7' : type === 'info' ? '#eff6ff' : '#fee2e2'
+  const iconColor = type === 'success' ? '#00875a' : type === 'info' ? '#0066cc' : '#dc2626'
 
   return (
     <div
@@ -39,7 +39,7 @@ export default function Toast({ message, type = 'success', onClose }) {
             fontWeight: 700,
           }}
         >
-          {type === 'success' ? '✓' : '✕'}
+          {type === 'success' ? '✓' : type === 'info' ? 'i' : '✕'}
         </div>
         <span style={{ fontSize: '14px', color: '#0a0a0a' }}>{message}</span>
         <button

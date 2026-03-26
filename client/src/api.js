@@ -66,3 +66,6 @@ export const addNetworking = (data) =>
 
 export const getAnalytics = () =>
   fetch(`${BASE}/api/analytics`, { credentials: 'include' })
+
+export const scanGmail = () =>
+  fetch(`${BASE}/api/gmail/scan`, { method: 'POST', credentials: 'include' })

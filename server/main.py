@@ -23,11 +23,13 @@ try:
     from server.sheets import read_sheet, read_sheet_raw, append_row, update_row, build_sheets_service
     from server.middleware import require_auth, require_sheet
     from server.db import save_sheet, get_sheet, remove_sheet
+    from server.gmail import scan_gmail_for_applications
 except ModuleNotFoundError:
     from auth import get_authorization_url, exchange_code, get_user_info
     from sheets import read_sheet, read_sheet_raw, append_row, update_row, build_sheets_service
     from middleware import require_auth, require_sheet
     from db import save_sheet, get_sheet, remove_sheet
+    from gmail import scan_gmail_for_applications
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -535,6 +537,68 @@ async def get_analytics(session: dict = Depends(require_sheet)):
         raise
     except Exception as e:
         logger.error(f"Get analytics error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── GMAIL SCAN ROUTE ──
+
+@app.post("/api/gmail/scan")
+async def gmail_scan(session: dict = Depends(require_sheet)):
+    """
+    Scan Gmail for job-application confirmation emails and add any new ones
+    to the Google Sheet, skipping entries that already exist (by company+position).
+    """
+    try:
+        from googleapiclient.errors import HttpError
+
+        access_token = session["access_token"]
+        spreadsheet_id = session["spreadsheet_id"]
+
+        # Build a set of existing (company, position) pairs for deduplication
+        existing = read_sheet(access_token, spreadsheet_id,
+                              "Applications Summer 2026", skip_rows=1)
+        existing_keys = set()
+        for row in existing:
+            company = (row.get("Company") or "").lower().strip()
+            position = (row.get("Position") or "").lower().strip()
+            if company:
+                existing_keys.add((company, position))
+
+        # Scan Gmail
+        found = scan_gmail_for_applications(access_token)
+
+        added = []
+        skipped_count = 0
+
+        for app in found:
+            key = (app["company"].lower().strip(), app["position"].lower().strip())
+            if key in existing_keys:
+                skipped_count += 1
+                continue
+
+            # row order: Priority, Status, Company, Date Applied, Position,
+            #            Industry, Role, Connections, Location, Date Posted,
+            #            Cover Letter, Resume upload, Resume Form, Salary Range,
+            #            Latest word, Notes
+            row_list = [
+                "", app["status"], app["company"], app["date_applied"],
+                app["position"], "", "", "", "", "", "", "", "", "", "", "",
+            ]
+            append_row(access_token, spreadsheet_id,
+                       "Applications Summer 2026", row_list)
+            added.append(app)
+            existing_keys.add(key)  # Prevent duplicates within the same scan
+
+        return {
+            "added": added,
+            "added_count": len(added),
+            "skipped_count": skipped_count,
+            "total_found": len(found),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Gmail scan error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

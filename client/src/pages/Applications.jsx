@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { addApplication, updateApplication } from '../api'
+import { addApplication, updateApplication, scanGmail } from '../api'
 import { useAppData } from '../context/AppDataContext'
 import StatusBadge from '../components/StatusBadge'
 import Modal from '../components/Modal'
@@ -38,6 +38,7 @@ export default function Applications({ onAuthError }) {
   const [editRow, setEditRow] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [scanning, setScanning] = useState(false)
   const [toast, setToast] = useState(null)
   const navigate = useNavigate()
 
@@ -102,6 +103,29 @@ export default function Applications({ onAuthError }) {
   const handleSort = (col) => {
     if (sortCol === col) setSortDir(d => -d)
     else { setSortCol(col); setSortDir(-1) }
+  }
+
+  const handleGmailScan = async () => {
+    setScanning(true)
+    try {
+      const res = await scanGmail()
+      if (res.status === 401) { onAuthError?.(); return }
+      const data = await res.json()
+      if (!res.ok) { setToast({ msg: data.detail || 'Gmail scan failed', type: 'error' }); return }
+      const { added_count, skipped_count, total_found } = data
+      if (total_found === 0) {
+        setToast({ msg: 'No application confirmation emails found in Gmail', type: 'info' })
+      } else if (added_count === 0) {
+        setToast({ msg: `Found ${total_found} email(s) — all already in your tracker`, type: 'info' })
+      } else {
+        setToast({ msg: `Added ${added_count} new application(s) from Gmail${skipped_count > 0 ? ` (${skipped_count} already existed)` : ''}`, type: 'success' })
+        invalidate('applications')
+        await load()
+      }
+    } catch {
+      setToast({ msg: 'Could not connect to Gmail', type: 'error' })
+    }
+    setScanning(false)
   }
 
   const openAdd = () => { setEditRow(null); setForm(EMPTY_FORM); setShowModal(true) }
@@ -209,6 +233,39 @@ export default function Applications({ onAuthError }) {
           </svg>
         </button>
         <h1 style={{ fontSize: '28px', fontWeight: 600, color: '#0a0a0a', flex: 1 }}>Applications Summer 2026</h1>
+        <button
+          onClick={handleGmailScan}
+          disabled={scanning}
+          style={{
+            backgroundColor: scanning ? '#f3f4f6' : 'white',
+            color: '#374151',
+            fontSize: '14px',
+            fontWeight: 500,
+            padding: '8px 16px',
+            borderRadius: 8,
+            border: '1px solid #e5e7eb',
+            cursor: scanning ? 'not-allowed' : 'pointer',
+            transition: 'background-color 0.15s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            opacity: scanning ? 0.6 : 1,
+          }}
+          onMouseEnter={e => { if (!scanning) e.currentTarget.style.backgroundColor = '#f9fafb' }}
+          onMouseLeave={e => { if (!scanning) e.currentTarget.style.backgroundColor = 'white' }}
+        >
+          {scanning ? (
+            <svg className="animate-spin" style={{ width: 15, height: 15 }} fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <svg style={{ width: 15, height: 15 }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          )}
+          {scanning ? 'Scanning...' : 'Scan Gmail'}
+        </button>
         <button
           onClick={openAdd}
           style={{
