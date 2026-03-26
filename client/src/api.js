@@ -20,6 +20,9 @@ export const disconnectSheet = () =>
     credentials: 'include',
   })
 
+export const getDriveSheets = () =>
+  fetch(`${BASE}/api/setup/drive-sheets`, { credentials: 'include' })
+
 export const getApplications = () =>
   fetch(`${BASE}/api/applications`, { credentials: 'include' })
 

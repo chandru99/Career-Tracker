@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from server.auth import get_authorization_url, exchange_code, get_user_info
-from server.sheets import read_sheet, read_sheet_raw, append_row, update_row
+from server.sheets import read_sheet, read_sheet_raw, append_row, update_row, build_sheets_service
 from server.middleware import require_auth, require_sheet
 
 logging.basicConfig(level=logging.INFO)
@@ -112,7 +112,8 @@ async def setup_connect(body: ConnectSheetBody, request: Request,
         extracted_id = match.group(1) if match else raw_id.strip()
 
         access_token = session["access_token"]
-        read_sheet(access_token, extracted_id, "Applications Summer 2026", 1)
+        service = build_sheets_service(access_token)
+        service.spreadsheets().get(spreadsheetId=extracted_id).execute()
         request.session["spreadsheet_id"] = extracted_id
         return {"success": True}
     except HTTPException:
@@ -121,8 +122,29 @@ async def setup_connect(body: ConnectSheetBody, request: Request,
         logger.error(f"Setup connect error: {e}")
         raise HTTPException(
             status_code=400,
-            detail="Could not access sheet. Make sure it is in your Google Drive and has a tab named 'Applications Summer 2026'."
+            detail="Could not access that spreadsheet. Make sure the URL is correct and the sheet is in your Google Drive."
         )
+
+
+@app.get("/api/setup/drive-sheets")
+async def setup_drive_sheets(session: dict = Depends(require_auth)):
+    """Return the user's Google Sheets spreadsheets from Drive, most recently modified first."""
+    try:
+        from googleapiclient.discovery import build
+        from google.oauth2.credentials import Credentials
+        creds = Credentials(token=session["access_token"])
+        drive = build("drive", "v3", credentials=creds)
+        result = drive.files().list(
+            q="mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
+            orderBy="modifiedTime desc",
+            pageSize=30,
+            fields="files(id,name,modifiedTime)"
+        ).execute()
+        files = result.get("files", [])
+        return [{"id": f["id"], "name": f["name"], "modified": f.get("modifiedTime", "")} for f in files]
+    except Exception as e:
+        logger.error(f"Drive sheets error: {e}")
+        raise HTTPException(status_code=500, detail="Could not load spreadsheets from Google Drive")
 
 
 @app.post("/api/setup/disconnect")
