@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { connectSheet, getDriveSheets, getMe, logout } from '../api'
+import { connectSheet, getDriveSheets, logout } from '../api'
 
 function formatModified(iso) {
   if (!iso) return ''
@@ -14,14 +13,12 @@ function formatModified(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-export default function Setup({ onAuthError }) {
+export default function Setup({ onAuthError, onConnected }) {
   const [sheets, setSheets] = useState(null)   // null = loading, [] = empty, [...] = list
   const [fetchError, setFetchError] = useState('')
   const [selected, setSelected] = useState(null)  // { id, name }
   const [connecting, setConnecting] = useState(false)
   const [connectError, setConnectError] = useState('')
-  const navigate = useNavigate()
-
   const handleSignOut = async () => {
     await logout()
     onAuthError?.()
@@ -48,8 +45,7 @@ export default function Setup({ onAuthError }) {
     try {
       const res = await connectSheet(selected.id)
       if (res.ok) {
-        await getMe()
-        navigate('/')
+        await onConnected?.()
       } else {
         const data = await res.json()
         setConnectError(data.detail || 'Failed to connect sheet')
