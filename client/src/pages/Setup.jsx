@@ -158,16 +158,15 @@ export default function Setup() {
                   className="w-full text-left flex items-center gap-3 transition-colors"
                   style={{
                     padding: '12px 14px',
-                    borderBottom: i < sheets.length - 1 ? '1px solid #f3f4f6' : 'none',
                     backgroundColor: isSelected ? '#eff6ff' : 'white',
                     border: 'none',
+                    borderBottom: i < sheets.length - 1 ? '1px solid #f3f4f6' : 'none',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 12,
                     width: '100%',
                     textAlign: 'left',
-                    borderBottom: i < sheets.length - 1 ? '1px solid #f3f4f6' : 'none',
                   }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = '#f9fafb' }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'white' }}
