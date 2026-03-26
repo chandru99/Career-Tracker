@@ -20,10 +20,12 @@ try:
     from server.auth import get_authorization_url, exchange_code, get_user_info
     from server.sheets import read_sheet, read_sheet_raw, append_row, update_row, build_sheets_service
     from server.middleware import require_auth, require_sheet
+    from server.db import save_sheet, get_sheet, remove_sheet
 except ModuleNotFoundError:
     from auth import get_authorization_url, exchange_code, get_user_info
     from sheets import read_sheet, read_sheet_raw, append_row, update_row, build_sheets_service
     from middleware import require_auth, require_sheet
+    from db import save_sheet, get_sheet, remove_sheet
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -75,7 +77,7 @@ async def auth_google_callback(request: Request, code: str, state: str):
         request.session["picture"] = user["picture"]
         request.session["access_token"] = tokens["access_token"]
         request.session["refresh_token"] = tokens["refresh_token"]
-        request.session["spreadsheet_id"] = None
+        request.session["spreadsheet_id"] = get_sheet(user["google_id"])
         return RedirectResponse(CLIENT_URL)
     except Exception as e:
         logger.error(f"OAuth callback error: {e}")
@@ -126,6 +128,7 @@ async def setup_connect(body: ConnectSheetBody, request: Request,
         service = build_sheets_service(access_token)
         service.spreadsheets().get(spreadsheetId=extracted_id).execute()
         request.session["spreadsheet_id"] = extracted_id
+        save_sheet(session["google_id"], extracted_id)
         return {"success": True}
     except HTTPException:
         raise
@@ -168,6 +171,7 @@ async def setup_drive_sheets(session: dict = Depends(require_auth)):
 async def setup_disconnect(request: Request,
                            session: dict = Depends(require_auth)):
     request.session["spreadsheet_id"] = None
+    remove_sheet(session["google_id"])
     return {"success": True}
 
 
