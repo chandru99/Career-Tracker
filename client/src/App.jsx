@@ -29,8 +29,7 @@ function AppInner() {
       setUser(data)
       setAuthed(true)
       setHasSheet(data.has_sheet)
-      if (data.has_sheet) navigate('/')
-      else navigate('/setup')
+      if (!data.has_sheet) navigate('/setup')
     } catch {
       setAuthed(false)
     } finally {
@@ -73,7 +72,7 @@ function AppInner() {
     <div className="min-h-screen bg-gray-50">
       {hasSheet && <Navbar user={user} onLogout={handleAuthError} />}
       <Routes>
-        <Route path="/setup" element={<Setup onAuthError={handleAuthError} onConnected={fetchMe} />} />
+        <Route path="/setup" element={<Setup onAuthError={handleAuthError} onConnected={async () => { await fetchMe(); navigate('/') }} />} />
         {hasSheet ? (
           <>
             <Route path="/" element={<Home user={user} />} />
