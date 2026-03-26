@@ -1,6 +1,17 @@
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
+_FORMULA_CHARS = ('=', '+', '-', '@', '\t', '\r')
+
+
+def _safe_cell(value) -> str:
+    """Prevent spreadsheet formula injection by prefixing dangerous leading chars."""
+    if not isinstance(value, str):
+        return value if value is not None else ""
+    if value.startswith(_FORMULA_CHARS):
+        return "'" + value
+    return value
+
 
 def build_sheets_service(access_token: str):
     creds = Credentials(token=access_token)
@@ -61,7 +72,7 @@ def append_row(access_token: str, spreadsheet_id: str,
                sheet_name: str, row_values: list) -> dict:
     """Append a single row to a sheet."""
     service = build_sheets_service(access_token)
-    body = {"values": [row_values]}
+    body = {"values": [[_safe_cell(v) for v in row_values]]}
     result = service.spreadsheets().values().append(
         spreadsheetId=spreadsheet_id,
         range=f"{sheet_name}!A:A",
@@ -77,7 +88,7 @@ def update_row(access_token: str, spreadsheet_id: str,
     """Update a specific row by its 1-based row index."""
     service = build_sheets_service(access_token)
     range_notation = f"{sheet_name}!A{row_index}:Z{row_index}"
-    body = {"values": [row_values]}
+    body = {"values": [[_safe_cell(v) for v in row_values]]}
     result = service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id,
         range=range_notation,

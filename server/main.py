@@ -34,6 +34,10 @@ except ModuleNotFoundError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_session_secret = os.getenv("SESSION_SECRET", "")
+if len(_session_secret) < 32:
+    raise RuntimeError("SESSION_SECRET must be set and at least 32 characters long")
+
 app = FastAPI()
 
 CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:5173")
@@ -41,7 +45,7 @@ IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production"
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET"),
+    secret_key=_session_secret,
     max_age=7 * 24 * 60 * 60,
     https_only=IS_PRODUCTION,
     same_site="lax",
@@ -73,6 +77,8 @@ async def auth_google(request: Request):
 @app.get("/auth/google/callback")
 async def auth_google_callback(request: Request, code: str, state: str):
     try:
+        if state != request.session.get("oauth_state"):
+            raise HTTPException(status_code=400, detail="Invalid OAuth state")
         tokens = exchange_code(code, state)
         user = get_user_info(tokens["access_token"])
         request.session["google_id"] = user["google_id"]
@@ -218,7 +224,7 @@ async def get_applications(session: dict = Depends(require_sheet)):
         raise
     except Exception as e:
         logger.error(f"Get applications error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 @app.post("/api/applications")
@@ -241,7 +247,7 @@ async def add_application(body: ApplicationBody,
         raise
     except Exception as e:
         logger.error(f"Add application error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 @app.put("/api/applications/{row_index}")
@@ -264,7 +270,7 @@ async def update_application(row_index: int, body: ApplicationBody,
         raise
     except Exception as e:
         logger.error(f"Update application error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 # ── LAMP LIST ROUTES ──
@@ -322,7 +328,7 @@ async def get_lamp(session: dict = Depends(require_sheet)):
         raise
     except Exception as e:
         logger.error(f"Get lamp error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 @app.post("/api/lamp")
@@ -341,7 +347,7 @@ async def add_lamp(body: LampBody, session: dict = Depends(require_sheet)):
         raise
     except Exception as e:
         logger.error(f"Add lamp error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 # ── NETWORKING ROUTES ──
@@ -410,7 +416,7 @@ async def get_networking(session: dict = Depends(require_sheet)):
         raise
     except Exception as e:
         logger.error(f"Get networking error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 @app.post("/api/networking")
@@ -432,7 +438,7 @@ async def add_networking(body: NetworkingBody,
         raise
     except Exception as e:
         logger.error(f"Add networking error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 # ── ANALYTICS ROUTE ──
@@ -537,7 +543,7 @@ async def get_analytics(session: dict = Depends(require_sheet)):
         raise
     except Exception as e:
         logger.error(f"Get analytics error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 # ── GMAIL SCAN ROUTE ──
@@ -599,7 +605,7 @@ async def gmail_scan(session: dict = Depends(require_sheet)):
         raise
     except Exception as e:
         logger.error(f"Gmail scan error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
 # ── SERVE REACT FRONTEND ──
