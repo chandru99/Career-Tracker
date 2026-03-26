@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { connectSheet, getDriveSheets, getMe } from '../api'
+import { connectSheet, getDriveSheets, getMe, logout } from '../api'
 
 function formatModified(iso) {
   if (!iso) return ''
@@ -14,13 +14,18 @@ function formatModified(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-export default function Setup() {
+export default function Setup({ onAuthError }) {
   const [sheets, setSheets] = useState(null)   // null = loading, [] = empty, [...] = list
   const [fetchError, setFetchError] = useState('')
   const [selected, setSelected] = useState(null)  // { id, name }
   const [connecting, setConnecting] = useState(false)
   const [connectError, setConnectError] = useState('')
   const navigate = useNavigate()
+
+  const handleSignOut = async () => {
+    await logout()
+    onAuthError?.()
+  }
 
   useEffect(() => {
     getDriveSheets()
@@ -247,6 +252,15 @@ export default function Setup() {
         <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: 16 }}>
           Your data stays in your own Google Drive. We never store it.
         </p>
+
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <button
+            onClick={handleSignOut}
+            style={{ background: 'none', border: 'none', fontSize: '12px', color: '#9ca3af', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   )
