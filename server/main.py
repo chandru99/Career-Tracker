@@ -144,7 +144,7 @@ async def setup_drive_sheets(session: dict = Depends(require_auth)):
         creds = Credentials(token=session["access_token"])
         drive = build("drive", "v3", credentials=creds)
         result = drive.files().list(
-            q="mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
+            q="(mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') and trashed=false",
             orderBy="modifiedTime desc",
             pageSize=30,
             fields="files(id,name,modifiedTime)"
