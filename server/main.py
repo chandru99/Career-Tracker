@@ -115,11 +115,27 @@ class ConnectSheetBody(BaseModel):
 async def setup_connect(body: ConnectSheetBody, request: Request,
                         session: dict = Depends(require_auth)):
     try:
+        from googleapiclient.discovery import build
+        from google.oauth2.credentials import Credentials
+
         raw_id = body.spreadsheet_id
         match = re.search(r'/spreadsheets/d/([a-zA-Z0-9-_]+)', raw_id)
         extracted_id = match.group(1) if match else raw_id.strip()
 
         access_token = session["access_token"]
+        creds = Credentials(token=access_token)
+
+        # Check if the file is an Excel file — if so, convert it to a native Google Sheet
+        drive = build("drive", "v3", credentials=creds)
+        file_meta = drive.files().get(fileId=extracted_id, fields="mimeType,name").execute()
+        if file_meta.get("mimeType") == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+            converted = drive.files().copy(
+                fileId=extracted_id,
+                body={"name": file_meta["name"].replace(".xlsx", ""),
+                      "mimeType": "application/vnd.google-apps.spreadsheet"}
+            ).execute()
+            extracted_id = converted["id"]
+
         service = build_sheets_service(access_token)
         service.spreadsheets().get(spreadsheetId=extracted_id).execute()
         request.session["spreadsheet_id"] = extracted_id
