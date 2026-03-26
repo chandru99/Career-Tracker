@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/auth/:path*", "destination": "https://career-tracker-api-edt0.onrender.com/auth/:path*" },
+    { "source": "/api/:path*",  "destination": "https://career-tracker-api-edt0.onrender.com/api/:path*" },
+    { "source": "/(.*)",        "destination": "/index.html" }
   ]
 }
