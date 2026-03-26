@@ -158,7 +158,7 @@ async def setup_drive_sheets(session: dict = Depends(require_auth)):
         from googleapiclient.errors import HttpError
         from google.oauth2.credentials import Credentials
         creds = Credentials(token=session["access_token"])
-        drive = build("drive", "v3", credentials=creds)
+        drive = build("drive", "v3", credentials=creds, cache_discovery=False)
         result = drive.files().list(
             q="mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
             orderBy="modifiedTime desc",

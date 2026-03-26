@@ -15,7 +15,7 @@ def _safe_cell(value) -> str:
 
 def build_sheets_service(access_token: str):
     creds = Credentials(token=access_token)
-    return build("sheets", "v4", credentials=creds)
+    return build("sheets", "v4", credentials=creds, cache_discovery=False)
 
 
 def read_sheet(access_token: str, spreadsheet_id: str,

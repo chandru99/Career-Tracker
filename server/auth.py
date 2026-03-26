@@ -66,7 +66,7 @@ def get_user_info(access_token: str):
     from googleapiclient.discovery import build
     from google.oauth2.credentials import Credentials
     creds = Credentials(token=access_token)
-    service = build("oauth2", "v2", credentials=creds)
+    service = build("oauth2", "v2", credentials=creds, cache_discovery=False)
     user_info = service.userinfo().get().execute()
     return {
         "google_id": user_info["id"],

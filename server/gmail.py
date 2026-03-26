@@ -34,7 +34,7 @@ _POSITION_PATTERNS = [
 
 def _build_gmail_service(access_token: str):
     creds = Credentials(token=access_token)
-    return build("gmail", "v1", credentials=creds)
+    return build("gmail", "v1", credentials=creds, cache_discovery=False)
 
 
 def _extract_company(from_header: str) -> str:
