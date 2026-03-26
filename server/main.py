@@ -117,6 +117,7 @@ async def setup_connect(body: ConnectSheetBody, request: Request,
                         session: dict = Depends(require_auth)):
     try:
         from googleapiclient.discovery import build
+        from googleapiclient.errors import HttpError
         from google.oauth2.credentials import Credentials
 
         raw_id = body.spreadsheet_id
@@ -143,8 +144,19 @@ async def setup_connect(body: ConnectSheetBody, request: Request,
         return {"success": True}
     except HTTPException:
         raise
+    except HttpError as e:
+        logger.error(f"Setup connect HttpError {e.resp.status}: {e}")
+        if e.resp.status in (401, 403):
+            raise HTTPException(
+                status_code=403,
+                detail="Permission denied. Please sign out and sign back in, then try again."
+            )
+        raise HTTPException(
+            status_code=400,
+            detail=f"Google API error: {e.reason}"
+        )
     except Exception as e:
-        logger.error(f"Setup connect error: {e}")
+        logger.error(f"Setup connect error: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=400,
             detail="Could not access that spreadsheet. Make sure the URL is correct and the sheet is in your Google Drive."

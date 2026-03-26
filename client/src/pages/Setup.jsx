@@ -20,6 +20,7 @@ export default function Setup({ onAuthError }) {
   const [selected, setSelected] = useState(null)  // { id, name }
   const [connecting, setConnecting] = useState(false)
   const [connectError, setConnectError] = useState('')
+  const [needsReauth, setNeedsReauth] = useState(false)
   const navigate = useNavigate()
 
   const handleSignOut = async () => {
@@ -52,7 +53,12 @@ export default function Setup({ onAuthError }) {
         navigate('/')
       } else {
         const data = await res.json()
-        setConnectError(data.detail || 'Failed to connect sheet')
+        if (res.status === 403) {
+          setNeedsReauth(true)
+          setConnectError('')
+        } else {
+          setConnectError(data.detail || 'Failed to connect sheet')
+        }
         setConnecting(false)
       }
     } catch {
@@ -200,6 +206,31 @@ export default function Setup({ onAuthError }) {
                 </button>
               )
             })}
+          </div>
+        )}
+
+        {/* Re-auth required banner */}
+        {needsReauth && (
+          <div style={{
+            fontSize: '13px', color: '#92400e',
+            backgroundColor: '#fffbeb', border: '1px solid #fcd34d',
+            borderRadius: 8, padding: '12px 14px', marginTop: 12,
+          }}>
+            <p style={{ fontWeight: 600, marginBottom: 4 }}>Additional permission required</p>
+            <p style={{ marginBottom: 10 }}>
+              To connect an Excel file, the app needs permission to convert it to a Google Sheet.
+              Please sign out and sign back in to grant access.
+            </p>
+            <button
+              onClick={handleSignOut}
+              style={{
+                backgroundColor: '#0066cc', color: 'white', border: 'none',
+                borderRadius: 6, padding: '7px 14px', fontSize: '13px',
+                fontWeight: 500, cursor: 'pointer',
+              }}
+            >
+              Sign out and re-authenticate
+            </button>
           </div>
         )}
 
