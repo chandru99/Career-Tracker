@@ -1,4 +1,6 @@
 import os
+import json
+import tempfile
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -16,11 +18,27 @@ SCOPES = [
 
 def get_oauth_flow():
     from google_auth_oauthlib.flow import Flow
-    flow = Flow.from_client_secrets_file(
-        "credentials.json",
-        scopes=SCOPES,
-        redirect_uri=os.getenv("GOOGLE_REDIRECT_URI")
-    )
+
+    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+
+    if creds_json:
+        creds_dict = json.loads(creds_json)
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json',
+                                         delete=False) as f:
+            json.dump(creds_dict, f)
+            temp_path = f.name
+        flow = Flow.from_client_secrets_file(
+            temp_path,
+            scopes=SCOPES,
+            redirect_uri=os.getenv("GOOGLE_REDIRECT_URI")
+        )
+        os.unlink(temp_path)
+    else:
+        flow = Flow.from_client_secrets_file(
+            "credentials.json",
+            scopes=SCOPES,
+            redirect_uri=os.getenv("GOOGLE_REDIRECT_URI")
+        )
     return flow
 
 
