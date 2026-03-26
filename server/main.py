@@ -116,50 +116,24 @@ class ConnectSheetBody(BaseModel):
 async def setup_connect(body: ConnectSheetBody, request: Request,
                         session: dict = Depends(require_auth)):
     try:
-        from googleapiclient.discovery import build
         from googleapiclient.errors import HttpError
-        from google.oauth2.credentials import Credentials
 
         raw_id = body.spreadsheet_id
         match = re.search(r'/spreadsheets/d/([a-zA-Z0-9-_]+)', raw_id)
         extracted_id = match.group(1) if match else raw_id.strip()
 
         access_token = session["access_token"]
-        creds = Credentials(token=access_token)
-
-        # Check if the file is an Excel file — if so, convert it to a native Google Sheet
-        drive = build("drive", "v3", credentials=creds)
-        file_meta = drive.files().get(fileId=extracted_id, fields="mimeType,name").execute()
-        if file_meta.get("mimeType") == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-            converted = drive.files().copy(
-                fileId=extracted_id,
-                body={"name": file_meta["name"].replace(".xlsx", ""),
-                      "mimeType": "application/vnd.google-apps.spreadsheet"}
-            ).execute()
-            extracted_id = converted["id"]
-
         service = build_sheets_service(access_token)
         service.spreadsheets().get(spreadsheetId=extracted_id).execute()
         request.session["spreadsheet_id"] = extracted_id
         return {"success": True}
     except HTTPException:
         raise
-    except HttpError as e:
-        logger.error(f"Setup connect HttpError {e.resp.status}: {e}")
-        if e.resp.status in (401, 403):
-            raise HTTPException(
-                status_code=403,
-                detail="Permission denied. Please sign out and sign back in, then try again."
-            )
-        raise HTTPException(
-            status_code=400,
-            detail=f"Google API error: {e.reason}"
-        )
     except Exception as e:
         logger.error(f"Setup connect error: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=400,
-            detail="Could not access that spreadsheet. Make sure the URL is correct and the sheet is in your Google Drive."
+            detail="Could not connect. Make sure this is a Google Sheet (not Excel) and you have access to it."
         )
 
 
@@ -173,7 +147,7 @@ async def setup_drive_sheets(session: dict = Depends(require_auth)):
         creds = Credentials(token=session["access_token"])
         drive = build("drive", "v3", credentials=creds)
         result = drive.files().list(
-            q="(mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') and trashed=false",
+            q="mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
             orderBy="modifiedTime desc",
             pageSize=30,
             fields="files(id,name,modifiedTime)"
