@@ -1,4 +1,6 @@
 export default function Login() {
+  const apiUrl = import.meta.env.VITE_API_URL || ''
+
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
@@ -35,7 +37,7 @@ export default function Login() {
         <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: 32 }}>Your job search, organized</p>
 
         <a
-          href="/auth/google"
+          href={`${apiUrl}/auth/google`}
           className="flex items-center justify-center gap-3 w-full transition-all"
           style={{
             padding: '11px 20px',

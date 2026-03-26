@@ -1,4 +1,4 @@
-const BASE = ''
+const BASE = import.meta.env.VITE_API_URL || ''
 
 export const getMe = () =>
   fetch(`${BASE}/auth/me`, { credentials: 'include' })
