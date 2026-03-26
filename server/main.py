@@ -31,13 +31,14 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:5173")
+IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production"
 
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET"),
     max_age=7 * 24 * 60 * 60,
-    https_only=False,
-    same_site="lax",
+    https_only=IS_PRODUCTION,
+    same_site="none" if IS_PRODUCTION else "lax",
     session_cookie="career_tracker_session",
 )
 
