@@ -72,7 +72,7 @@ function AppInner() {
     <div className="min-h-screen bg-gray-50">
       {hasSheet && <Navbar user={user} onLogout={handleAuthError} />}
       <Routes>
-        <Route path="/setup" element={<Setup />} />
+        <Route path="/setup" element={<Setup onAuthError={handleAuthError} />} />
         {hasSheet ? (
           <>
             <Route path="/" element={<Home user={user} />} />

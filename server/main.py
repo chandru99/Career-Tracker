@@ -1,10 +1,13 @@
 import os
 import re
 import logging
-from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent / ".env")
+try:
+    from pathlib import Path
+    load_dotenv(Path(__file__).parent / ".env")
+except Exception:
+    load_dotenv()
 
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,9 +16,14 @@ from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel
 from typing import Optional
 
-from server.auth import get_authorization_url, exchange_code, get_user_info
-from server.sheets import read_sheet, read_sheet_raw, append_row, update_row, build_sheets_service
-from server.middleware import require_auth, require_sheet
+try:
+    from server.auth import get_authorization_url, exchange_code, get_user_info
+    from server.sheets import read_sheet, read_sheet_raw, append_row, update_row, build_sheets_service
+    from server.middleware import require_auth, require_sheet
+except ModuleNotFoundError:
+    from auth import get_authorization_url, exchange_code, get_user_info
+    from sheets import read_sheet, read_sheet_raw, append_row, update_row, build_sheets_service
+    from middleware import require_auth, require_sheet
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -131,6 +139,7 @@ async def setup_drive_sheets(session: dict = Depends(require_auth)):
     """Return the user's Google Sheets spreadsheets from Drive, most recently modified first."""
     try:
         from googleapiclient.discovery import build
+        from googleapiclient.errors import HttpError
         from google.oauth2.credentials import Credentials
         creds = Credentials(token=session["access_token"])
         drive = build("drive", "v3", credentials=creds)
@@ -142,6 +151,11 @@ async def setup_drive_sheets(session: dict = Depends(require_auth)):
         ).execute()
         files = result.get("files", [])
         return [{"id": f["id"], "name": f["name"], "modified": f.get("modifiedTime", "")} for f in files]
+    except HttpError as e:
+        if e.resp.status in (401, 403):
+            raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+        logger.error(f"Drive sheets error: {e}")
+        raise HTTPException(status_code=500, detail="Could not load spreadsheets from Google Drive")
     except Exception as e:
         logger.error(f"Drive sheets error: {e}")
         raise HTTPException(status_code=500, detail="Could not load spreadsheets from Google Drive")

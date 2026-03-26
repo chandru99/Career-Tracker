@@ -24,8 +24,12 @@ export default function Setup() {
 
   useEffect(() => {
     getDriveSheets()
-      .then(r => r.json())
+      .then(r => {
+        if (r.status === 401) { onAuthError?.(); return null }
+        return r.json()
+      })
       .then(data => {
+        if (!data) return
         if (Array.isArray(data)) setSheets(data)
         else setFetchError(data.detail || 'Could not load your spreadsheets')
       })
