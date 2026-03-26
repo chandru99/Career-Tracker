@@ -9,9 +9,11 @@ try:
 except Exception:
     load_dotenv()
 
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -40,7 +42,7 @@ app.add_middleware(
     secret_key=os.getenv("SESSION_SECRET"),
     max_age=7 * 24 * 60 * 60,
     https_only=IS_PRODUCTION,
-    same_site="none" if IS_PRODUCTION else "lax",
+    same_site="lax",
     session_cookie="career_tracker_session",
 )
 
@@ -534,3 +536,15 @@ async def get_analytics(session: dict = Depends(require_sheet)):
     except Exception as e:
         logger.error(f"Get analytics error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── SERVE REACT FRONTEND ──
+
+BUILD_DIR = Path(__file__).parent.parent / "client" / "dist"
+
+if BUILD_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=str(BUILD_DIR / "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        return FileResponse(str(BUILD_DIR / "index.html"))
