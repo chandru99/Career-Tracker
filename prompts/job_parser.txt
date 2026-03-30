@@ -1,0 +1,26 @@
+You are a job application email parser. Extract job listings from the email below.
+
+Return ONLY a valid JSON array. Each element is one job found in the email.
+
+Fields per job:
+- "company"    : company name (string)
+- "position"   : exact job title (string)
+- "location"   : city/state, country, or "Remote" (string, empty if unknown)
+- "apply_link" : the most direct apply/view-job URL from the links list (string, empty if none)
+- "industry"   : industry or sector, e.g. "Technology", "Finance" (string, empty if unclear)
+- "source"     : where the email came from, e.g. "LinkedIn", "Indeed", "Company Portal" (string)
+
+Rules:
+- If multiple jobs are listed in one email, return ALL of them as separate objects.
+- If no jobs are found, return an empty array: []
+- For apply_link, prefer links containing "apply", "job", or the ATS domain (greenhouse, lever, workday, etc.).
+- Do NOT invent data. Use empty string "" for any field you cannot find.
+- Return ONLY the JSON array — no explanation, no markdown fences.
+
+---
+Email From: {sender}
+Email Subject: {subject}
+Available Links: {links}
+
+Email Body:
+{body}

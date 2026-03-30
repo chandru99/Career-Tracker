@@ -1,0 +1,63 @@
+{% if jobs %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Position</th>
+        <th>Location</th>
+        <th>Source</th>
+        <th>Date Found</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      {% set mid = job.get('Gmail Message ID') | string %}
+      <tr class="job-row" id="job-{{ mid }}">
+        <td class="fw-bold">{{ job.get('Company') or '—' }}</td>
+        <td>{{ job.get('Position') or '—' }}</td>
+        <td>
+          {% if job.get('Location') %}
+            <span class="pill pill-location">{{ job['Location'] }}</span>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if job.get('Source') %}
+            <span class="pill pill-source">{{ job['Source'] }}</span>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td class="mono">{{ job.get('Date Found') or '—' }}</td>
+        <td class="actions-cell">
+          {% if job.get('Apply Link') %}
+          <a
+            href="{{ job['Apply Link'] }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-sm btn-outline">
+            Apply ↗
+          </a>
+          {% endif %}
+          <button
+            class="btn btn-sm btn-success"
+            hx-get="/api/jobs/{{ mid }}/apply-form"
+            hx-target="#modal-container"
+            hx-swap="innerHTML">
+            I Applied
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No jobs in your list yet.</p>
+  <p>Click <strong>Fetch Jobs</strong> to pull job emails from Gmail.</p>
+</div>
+{% endif %}

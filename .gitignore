@@ -1,24 +1,32 @@
-# Google credentials — never commit this
+# OAuth tokens — never commit
+token.json
 credentials.json
+
+# Excel workbook — personal data
+*.xlsx
+
+# Environment
+.env
 
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-.env
-server/.env
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
 
-# Node
-node_modules/
-client/node_modules/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Build output
-client/dist/
-client/build/
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-
-# VS Code
-.vscode/

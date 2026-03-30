@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Career Tracker{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.10" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- ── Navbar ── -->
+  <nav class="navbar">
+    <span class="nav-brand">Career Tracker</span>
+
+    <div class="nav-links">
+      <a href="/" class="nav-link {% if active == 'dashboard' %}active{% endif %}">
+        To Apply
+      </a>
+      <a href="/applications" class="nav-link {% if active == 'applications' %}active{% endif %}">
+        Applications
+      </a>
+    </div>
+
+    <div class="nav-status">
+      <span
+        hx-get="/api/ollama-status"
+        hx-trigger="load"
+        hx-swap="outerHTML">
+        <span class="badge-status loading">Ollama …</span>
+      </span>
+      <span
+        hx-get="/api/gmail-status"
+        hx-trigger="load"
+        hx-swap="outerHTML">
+        <span class="badge-status loading">Gmail …</span>
+      </span>
+    </div>
+  </nav>
+
+  <!-- ── Toast container ── -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ── Modal container — HTMX swaps modals here ── -->
+  <div id="modal-container"></div>
+
+  <!-- ── Page content ── -->
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    // ── Toast helper ──────────────────────────────────────────
+    function showToast(type, message) {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = 'toast toast-' + type;
+      el.textContent = message;
+      container.appendChild(el);
+      // Trigger CSS fade-in
+      requestAnimationFrame(() => el.classList.add('visible'));
+      setTimeout(() => {
+        el.classList.remove('visible');
+        el.addEventListener('transitionend', () => el.remove(), { once: true });
+      }, 4000);
+    }
+
+    // ── Close modal when clicking the overlay ─────────────────
+    document.addEventListener('click', function (e) {
+      if (e.target.id === 'modal-container') {
+        e.target.innerHTML = '';
+      }
+    });
+
+    // ── HTMX server-sent events ───────────────────────────────
+    document.body.addEventListener('showToast', function (e) {
+      showToast(e.detail.type, e.detail.message);
+    });
+
+    document.body.addEventListener('closeModal', function () {
+      document.getElementById('modal-container').innerHTML = '';
+    });
+
+    // ── Global HTMX error handler ─────────────────────────────
+    document.body.addEventListener('htmx:responseError', function (e) {
+      showToast('error', 'Request failed (' + e.detail.xhr.status + ')');
+    });
+  </script>
+</body>
+</html>

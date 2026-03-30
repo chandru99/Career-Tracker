@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}To Apply — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>To Apply <span class="count-badge" id="job-count">{{ jobs | length }}</span></h1>
+  </div>
+  <div class="page-header-right">
+    <input
+      type="text"
+      id="search-input"
+      class="search-input"
+      placeholder="Search company, position, location…"
+      oninput="filterRows(this.value)" />
+    <button
+      class="btn btn-primary"
+      hx-post="/fetch-jobs"
+      hx-target="#job-list"
+      hx-swap="innerHTML"
+      hx-indicator="#fetch-spinner"
+      hx-disabled-elt="this">
+      <span id="fetch-spinner" class="spinner htmx-indicator"></span>
+      Fetch Jobs
+    </button>
+  </div>
+</div>
+
+{% if not gmail_auth %}
+<div class="alert alert-warn">
+  Gmail not connected —
+  <a href="/auth/gmail" class="alert-link">Connect Gmail</a>
+  to fetch job emails.
+</div>
+{% endif %}
+
+{% if not ollama_ok %}
+<div class="alert alert-err">
+  Ollama is not running or Mistral is not installed.
+  Start Ollama with <code>ollama serve</code> and ensure you've run
+  <code>ollama pull mistral</code>.
+</div>
+{% endif %}
+
+<div id="job-list">
+  {% include "partials/job_rows.html" %}
+</div>
+
+<script>
+  function filterRows(query) {
+    const q = query.toLowerCase();
+    const rows = document.querySelectorAll('.job-row');
+    let visible = 0;
+    rows.forEach(row => {
+      const match = !q || row.textContent.toLowerCase().includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const badge = document.getElementById('job-count');
+    if (badge) badge.textContent = q ? visible : rows.length;
+  }
+</script>
+{% endblock %}

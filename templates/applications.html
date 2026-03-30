@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Applications — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Applications <span class="count-badge">{{ apps | length }}</span></h1>
+  </div>
+  <div class="page-header-right">
+    <input
+      type="text"
+      id="search-input"
+      class="search-input"
+      placeholder="Search company, position, status…"
+      oninput="filterApps()" />
+    <select id="status-filter" class="filter-select" onchange="filterApps()">
+      <option value="">All Statuses</option>
+      <option value="app submitted">App Submitted</option>
+      <option value="interview received">Interview Received</option>
+      <option value="pre-interview">Pre-Interview</option>
+      <option value="rejected">Rejected</option>
+    </select>
+  </div>
+</div>
+
+{% if apps %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Company</th>
+        <th>Position</th>
+        <th>Role</th>
+        <th>Date Applied</th>
+        <th>Follow-up</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for app in apps %}
+      <tr class="app-row">
+        <td>
+          {% set s = (app.get('Status') or '') | lower | replace(' ', '-') %}
+          <span class="status-pill status-{{ s }}">
+            {{ app.get('Status') or '—' }}
+          </span>
+        </td>
+        <td class="fw-bold">{{ app.get('Company') or '—' }}</td>
+        <td>{{ app.get('Position') or '—' }}</td>
+        <td>{{ app.get('Role') or '—' }}</td>
+        <td class="mono">{{ app.get('Date Applied') or '—' }}</td>
+        <td class="mono">{{ app.get('Follow-up Date') or '—' }}</td>
+        <td class="notes-cell">{{ app.get('Notes') or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No applications logged yet.</p>
+  <p>Go to <a href="/">To Apply</a>, apply to a job, then click <strong>I Applied</strong>.</p>
+</div>
+{% endif %}
+
+<script>
+  function filterApps() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const statusVal = document.getElementById('status-filter').value.toLowerCase();
+    document.querySelectorAll('.app-row').forEach(row => {
+      const text = row.textContent.toLowerCase();
+      const matchQ = !q || text.includes(q);
+      const matchS = !statusVal || text.includes(statusVal);
+      row.style.display = (matchQ && matchS) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

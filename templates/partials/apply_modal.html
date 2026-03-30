@@ -1,0 +1,120 @@
+{% set mid = job.get('Gmail Message ID') | string %}
+
+<div class="modal-overlay" id="modal-container" onclick="if(event.target===this)this.innerHTML=''">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+    <div class="modal-header">
+      <h2 id="modal-title">Log Application</h2>
+      <button
+        class="modal-close"
+        aria-label="Close"
+        onclick="document.getElementById('modal-container').innerHTML=''">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Job summary -->
+      <div class="job-summary">
+        <span class="fw-bold">{{ job.get('Company') or '?' }}</span>
+        <span class="muted"> — </span>
+        {{ job.get('Position') or '?' }}
+        {% if job.get('Apply Link') %}
+        <a
+          href="{{ job['Apply Link'] }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="summary-link">
+          Open Job ↗
+        </a>
+        {% endif %}
+      </div>
+
+      <form
+        hx-post="/api/mark-applied"
+        hx-target="#job-{{ mid }}"
+        hx-swap="outerHTML">
+
+        <input type="hidden" name="message_id" value="{{ mid }}" />
+
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="date_applied">Date Applied</label>
+            <input type="date" id="date_applied" name="date_applied"
+                   value="{{ today }}" required />
+          </div>
+
+          <div class="form-group">
+            <label for="followup_date">Follow-up Date</label>
+            <input type="date" id="followup_date" name="followup_date" />
+          </div>
+
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+              <option value="App Submitted" selected>App Submitted</option>
+              <option value="Interview Received">Interview Received</option>
+              <option value="Pre-Interview Assessment">Pre-Interview Assessment</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="role">Role Category</label>
+            <input type="text" id="role" name="role"
+                   placeholder="e.g. Product Manager" />
+          </div>
+
+          <div class="form-group">
+            <label for="cover_letter">Cover Letter?</label>
+            <select id="cover_letter" name="cover_letter">
+              <option value="No" selected>No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="resume_upload">Résumé Uploaded?</label>
+            <select id="resume_upload" name="resume_upload">
+              <option value="Yes" selected>Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="resume_form">Résumé Form?</label>
+            <select id="resume_form" name="resume_form">
+              <option value="No" selected>No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="connections">Connections?</label>
+            <input type="text" id="connections" name="connections"
+                   placeholder="NIL or name" />
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="3"
+                      placeholder="Any notes about this application…"></textarea>
+          </div>
+
+        </div><!-- /.form-grid -->
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="document.getElementById('modal-container').innerHTML=''">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-success">
+            Save &amp; Mark Applied
+          </button>
+        </div>
+
+      </form>
+    </div><!-- /.modal-body -->
+  </div><!-- /.modal -->
+</div><!-- /.modal-overlay -->
