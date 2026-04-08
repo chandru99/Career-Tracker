@@ -292,7 +292,6 @@ def fetch_jobs(request: Request):
             jobs = _safe_get_jobs()
             return _respond(jobs, "error", str(e))
 
-    skipped = len(emails) * 1 - len(new_jobs) - parse_errors  # rough estimate
     msg = f"Added {len(new_jobs)} new job(s) from {len(emails)} email(s)."
     if parse_errors:
         msg += f" {parse_errors} email(s) could not be parsed."
