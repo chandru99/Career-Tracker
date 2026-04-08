@@ -3,6 +3,7 @@ import json
 import re
 import logging
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 import ollama
 
@@ -10,6 +11,9 @@ logger = logging.getLogger(__name__)
 
 MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 PROMPT_FILE = Path("prompts/job_parser.txt")
+OLLAMA_TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "45"))
+OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "350"))
+OLLAMA_BODY_CHARS = int(os.getenv("OLLAMA_BODY_CHARS", "1600"))
 
 
 # ── Status check ──────────────────────────────────────────────────────────────
@@ -103,25 +107,44 @@ def parse_email(email: dict) -> list:
         sender=email.get("sender", ""),
         subject=email.get("subject", ""),
         links=", ".join(email.get("links", [])) or "none",
-        body=email.get("body", "")[:2500],
+        body=email.get("body", "")[:OLLAMA_BODY_CHARS],
     )
 
-    try:
-        response = ollama.chat(
+    def _run_chat():
+        return ollama.chat(
             model=MODEL,
             messages=[{"role": "user", "content": prompt}],
-            options={"temperature": 0.1},
+            format="json",
+            options={
+                "temperature": 0.1,
+                "num_predict": OLLAMA_NUM_PREDICT,
+            },
         )
-        # Handle both attribute-style and dict-style SDK responses
-        if hasattr(response, "message"):
-            raw = response.message.content
-        else:
-            raw = response["message"]["content"]
 
+    try:
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            response = ex.submit(_run_chat).result(timeout=OLLAMA_TIMEOUT_SECONDS)
+    except TimeoutError:
+        raise RuntimeError(
+            f"Ollama timeout after {OLLAMA_TIMEOUT_SECONDS}s. "
+            "Try reducing MAX_EMAILS or increasing OLLAMA_TIMEOUT_SECONDS."
+        )
     except Exception as e:
         raise RuntimeError(f"Ollama call failed: {e}")
 
-    jobs = _extract_json(raw)
+    # Handle both attribute-style and dict-style SDK responses
+    if hasattr(response, "message"):
+        raw = response.message.content
+    else:
+        raw = response["message"]["content"]
+
+    parsed = _extract_json(raw)
+    jobs = []
+    for item in parsed:
+        if isinstance(item, dict) and isinstance(item.get("jobs"), list):
+            jobs.extend(item["jobs"])
+        else:
+            jobs.append(item)
 
     # Validate and clean each entry
     cleaned = []

@@ -117,6 +117,13 @@ If Ollama is not parsing emails correctly, edit `prompts/job_parser.txt`. You ca
 
 No restart needed — the prompt is read fresh on each request.
 
+You can also tune parser runtime with environment variables in `.env`:
+
+- `OLLAMA_TIMEOUT_SECONDS` (default `45`) — max wait per email parse before skipping
+- `OLLAMA_NUM_PREDICT` (default `350`) — caps response length for faster replies
+- `OLLAMA_BODY_CHARS` (default `1600`) — truncates email body sent to the model
+- `MAX_EMAILS` (default `20`) — total emails fetched per run
+
 ## Security Notes
 
 - `credentials.json` and `token.json` are gitignored — never commit them
